@@ -1,0 +1,16 @@
+# Normalize line endings to LF on check-in
+* text=auto eol=lf
+
+# Explicitly declare text files
+*.md text eol=lf
+*.py text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.jsx text eol=lf
+*.tsx text eol=lf
+*.sql text eol=lf
+*.txt text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.sh text eol=lf

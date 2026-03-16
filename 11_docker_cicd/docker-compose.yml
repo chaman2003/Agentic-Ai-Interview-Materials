@@ -1,0 +1,86 @@
+# ============================================================
+# DOCKER COMPOSE — Flask + PostgreSQL + Redis
+# ============================================================
+# docker-compose up         → start all services
+# docker-compose up -d      → start in background
+# docker-compose down       → stop and remove containers
+# docker-compose logs app   → view logs for 'app' service
+
+version: "3.9"
+
+services:
+  # ── Flask App ──────────────────────────────────────────────
+  app:
+    build:
+      context: .            # build from Dockerfile in current directory
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"         # host:container
+    environment:
+      - FLASK_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/appdb
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET=dev-secret-key-change-in-production
+    volumes:
+      - .:/app              # mount current dir for hot reload in dev
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── PostgreSQL Database ────────────────────────────────────
+  db:
+    image: postgres:15-alpine   # official Postgres image
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB:       appdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data   # persist data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval:  5s
+      timeout:   5s
+      retries:   5
+
+  # ── PGVector for embeddings (extends Postgres) ──────────────
+  pgvector:
+    image: ankane/pgvector:latest
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB:       vectordb
+    volumes:
+      - pgvector_data:/var/lib/postgresql/data
+
+  # ── Redis (caching, sessions) ──────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass redispassword
+    volumes:
+      - redis_data:/data
+
+  # ── MongoDB ───────────────────────────────────────────────
+  mongodb:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: mongo
+    volumes:
+      - mongodb_data:/data/db
+
+volumes:
+  postgres_data:
+  pgvector_data:
+  redis_data:
+  mongodb_data:
